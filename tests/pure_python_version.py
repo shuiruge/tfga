@@ -230,7 +230,7 @@ if __name__ == '__main__':
 
         def initialize_population(self):
             population = [
-                np.random.random([100]) for _ in range(self.n_individuals)
+                np.random.random([10000]) for _ in range(self.n_individuals)
             ]
             population = np.array(population, dtype='float32')
             print('Initialized population with shape', population.shape)
