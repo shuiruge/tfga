@@ -199,6 +199,15 @@ if __name__ == '__main__':
 
 
     class SimpleGeneticAlgorithm(BaseGeneticAlgorithm):
+        """Test on function:
+
+            lambda x: - x * (x - 1/2.3)**2 * (x - 1)
+            
+        where the dimension of the `x` can be arbitrary.
+
+        For one-dimensional case, the diagram and maximum value:
+            http://www.wolframalpha.com/input/?i=maximum+-x+*+(x-1%2F2.3)**2+*+(x-1)
+        """
 
         def __init__(self,
                      n_individuals,
@@ -211,11 +220,7 @@ if __name__ == '__main__':
                              **kwargs)
 
         def get_fitness(self, x):
-            fitness = np.sin(2 * np.pi * x)
-            if x.shape:
-                return np.mean(fitness)
-            else:
-                return fitness
+            return np.mean(- x * (x - 1/2.3)**2 * (x - 1))
 
         def _mutate(self, x):
             noise_scale = 0.2
@@ -228,17 +233,18 @@ if __name__ == '__main__':
             return (x1 + (x2 - x1) * np.random.random(),
                     x1 + (x2 - x1) * np.random.random())
 
-        def initialize_population(self):
+        def initialize_population(self, dim=10**5):
             population = [
-                np.random.random([10000]) for _ in range(self.n_individuals)
+                np.random.random([dim])
+                for _ in range(self.n_individuals)
             ]
             population = np.array(population, dtype='float32')
             print('Initialized population with shape', population.shape)
             return population
 
-        def shall_stop(self, generation):
+        def shall_stop(self, generation, true_max=0.022, epsilon=1e-4):
             max_fitness = np.max(generation.fitnesses)
-            if max_fitness > 1 - 1e-2:
+            if max_fitness > true_max - epsilon:
                 return True
             else:
                 return False
@@ -246,7 +252,11 @@ if __name__ == '__main__':
     def main():
         time_start = time.time()
 
-        sga = SimpleGeneticAlgorithm(10**2, 0.3, 0.1, verbose=True)
+        sga = SimpleGeneticAlgorithm(
+                n_individuals=3*10**3,
+                crossover_probability=0.3,
+                mutation_probability=0.05,
+                verbose=True)
         final_generation = sga.train()
         best_fitness = np.max(final_generation.fitnesses)
 
