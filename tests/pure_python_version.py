@@ -42,9 +42,14 @@ class BaseGeneticAlgorithm(abc.ABC):
             generation = self.create_next_generation(generation)
             self.n_generations += 1
             if self.verbose:
-                msg = 'Generation {0}, with the best fitness {1}'
+                msg = ('Generation {0}, with the best fitness {1}, '
+                       'with fiteness mean/std {2} / {3}. ')
                 best_fitness = np.max(generation.fitnesses)
-                print(msg.format(self.n_generations, best_fitness))
+                fitness_mean = np.mean(generation.fitnesses)
+                fitness_std = np.std(generation.fitnesses)
+                msg = msg.format(self.n_generations, best_fitness,
+                                 fitness_mean, fitness_std)
+                print(msg)
         return generation
 
     def create_next_generation(self, generation):
@@ -90,7 +95,7 @@ class BaseGeneticAlgorithm(abc.ABC):
             An instance of `Generation`.
         """
         n_individuals = generation.population.shape[0]
-        if n_individuals != (1-self.crossover_probability)*self.n_individuals:
+        if n_individuals != int((1-self.crossover_probability)*self.n_individuals):
             raise ValueError('...')
 
         # Select individuals for crossover
@@ -194,6 +199,8 @@ def softmax(x):
 
 if __name__ == '__main__':
 
+    """Test."""
+
 
     import time
 
@@ -224,16 +231,30 @@ if __name__ == '__main__':
 
         def _mutate(self, x):
             noise_scale = 0.2
-            new_x = x + np.random.normal() * noise_scale
+            new_x = x + np.random.normal(x.shape) * noise_scale
             condition = np.logical_and(new_x > np.zeros_like(x),
                                        new_x < np.ones_like(x))
-            return np.where(condition, new_x, np.random.random(size=x.shape))
+            return np.where(condition, new_x, np.random.random(x.shape))
+
+        def _crossover_1(self, x1, x2):
+            """Approach 1."""
+            return [x1 + (x2 - x1) * np.random.random(x1.shape)
+                    for _ in (x1, x2)]
+        
+        def _crossover_2(self, x1, x2, percentage=0.2):
+            """Approach 2."""
+            new_x1 = x1.copy()
+            new_x2 = x2.copy()
+            for i in range(self.n_individuals):
+                if np.random.random() < percentage:
+                    new_x1[i] = x2[i]
+                    new_x2[i] = x1[i]
+            return (new_x1, new_x2)
 
         def _crossover(self, x1, x2):
-            return (x1 + (x2 - x1) * np.random.random(),
-                    x1 + (x2 - x1) * np.random.random())
-
-        def initialize_population(self, dim=10**5):
+            return self._crossover_1(x1, x2)
+                
+        def initialize_population(self, dim=10**3):
             population = [
                 np.random.random([dim])
                 for _ in range(self.n_individuals)
@@ -253,17 +274,16 @@ if __name__ == '__main__':
         time_start = time.time()
 
         sga = SimpleGeneticAlgorithm(
-                n_individuals=3*10**3,
+                n_individuals=1*10**3,
                 crossover_probability=0.3,
                 mutation_probability=0.05,
                 verbose=True)
         final_generation = sga.train()
         best_fitness = np.max(final_generation.fitnesses)
-
         time_elipsed = time.time() - time_start
 
         msg = ('After {0} generations, {1} seconds elipsed, '
-               'the best fitness is gained as {2}')
+               'the best fitness is gained as {2}.')
         msg = msg.format(sga.n_generations, time_elipsed, best_fitness)
         print(msg)
 
